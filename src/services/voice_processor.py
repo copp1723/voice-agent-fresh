@@ -16,15 +16,24 @@ class VoiceProcessor:
     """
     
     def __init__(self):
-        self.openai_client = openai.OpenAI(
-            api_key=os.getenv('OPENROUTER_API_KEY'),
-            base_url="https://openrouter.ai/api/v1"
-        )
+        # Get API keys with fallbacks
+        openrouter_key = os.getenv('OPENROUTER_API_KEY')
+        openai_key = os.getenv('OPENAI_API_KEY', openrouter_key)
         
-        # For TTS, we need direct OpenAI API
-        self.tts_client = openai.OpenAI(
-            api_key=os.getenv('OPENAI_API_KEY', os.getenv('OPENROUTER_API_KEY'))
-        )
+        # Initialize OpenRouter client for general AI
+        if openrouter_key:
+            self.openai_client = openai.OpenAI(
+                api_key=openrouter_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+        else:
+            self.openai_client = None
+        
+        # For TTS, we need direct OpenAI API (optional)
+        if openai_key:
+            self.tts_client = openai.OpenAI(api_key=openai_key)
+        else:
+            self.tts_client = None
         
         self.default_voice = os.getenv('DEFAULT_VOICE', 'alloy')
         self.speech_model = 'whisper-1'
@@ -42,6 +51,10 @@ class VoiceProcessor:
             Audio bytes (MP3 format)
         """
         try:
+            if not self.tts_client:
+                logger.warning("TTS client not available - returning empty audio")
+                return b""
+            
             voice_name = voice or self.default_voice
             
             # Ensure text is not too long (OpenAI TTS limit is 4096 characters)
@@ -74,6 +87,10 @@ class VoiceProcessor:
             Transcribed text
         """
         try:
+            if not self.openai_client:
+                logger.warning("STT client not available - returning empty transcription")
+                return ""
+            
             # Create audio file object
             audio_file = io.BytesIO(audio_data)
             audio_file.name = f"audio.{audio_format}"

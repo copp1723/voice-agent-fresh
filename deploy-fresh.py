@@ -177,7 +177,7 @@ def main():
     # Get repository URL
     repo_url = input("Enter your GitHub repository URL (or press Enter for default): ").strip()
     if not repo_url:
-        repo_url = "https://github.com/your-username/voice-agent-fresh"
+        repo_url = "https://github.com/copp1723/voice-agent-fresh"
         print(f"Using default repo: {repo_url}")
     
     # Production environment variables with your credentials

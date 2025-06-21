@@ -14,10 +14,17 @@ class AgentBrain:
     """
     
     def __init__(self):
-        self.openai_client = openai.OpenAI(
-            api_key=os.getenv('OPENROUTER_API_KEY'),
-            base_url="https://openrouter.ai/api/v1"
-        )
+        # Get API key with fallback
+        api_key = os.getenv('OPENROUTER_API_KEY')
+        
+        if api_key:
+            self.openai_client = openai.OpenAI(
+                api_key=api_key,
+                base_url="https://openrouter.ai/api/v1"
+            )
+        else:
+            self.openai_client = None
+            logger.warning("OpenRouter API key not found - AgentBrain will not function")
         self.default_model = "openai/gpt-4o-mini"
         self.current_system_prompt = None
         self.max_tokens = 150  # Keep responses concise for voice
@@ -45,6 +52,9 @@ class AgentBrain:
             AI response text optimized for speech
         """
         try:
+            if not self.openai_client:
+                return "I'm sorry, I'm having trouble connecting to my AI service. Please try again later."
+            
             # Build conversation messages
             messages = []
             

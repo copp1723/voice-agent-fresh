@@ -16,16 +16,20 @@ class CallRouter:
     
     def __init__(self):
         self.agent_configs = {}
-        self.load_agent_configs()
+        # Don't load configs during import - will load when needed
     
     def load_agent_configs(self):
         """
         Load agent configurations from database
         """
         try:
-            configs = AgentConfig.query.all()
-            self.agent_configs = {config.agent_type: config for config in configs}
-            logger.info(f"Loaded {len(self.agent_configs)} agent configurations")
+            from flask import current_app
+            if current_app:
+                configs = AgentConfig.query.all()
+                self.agent_configs = {config.agent_type: config for config in configs}
+                logger.info(f"Loaded {len(self.agent_configs)} agent configurations")
+            else:
+                logger.warning("No Flask app context - agent configs not loaded")
         except Exception as e:
             logger.error(f"Error loading agent configs: {e}")
             self.agent_configs = {}
@@ -112,6 +116,10 @@ class CallRouter:
         Returns:
             Complete routing decision
         """
+        # Ensure agent configs are loaded
+        if not self.agent_configs:
+            self.load_agent_configs()
+        
         # Analyze intent
         routing_analysis = self.analyze_intent(user_input)
         
@@ -127,12 +135,12 @@ class CallRouter:
                     'call_sid': call_sid,
                     'phone_number': phone_number,
                     'agent_type': 'general',
-                    'system_prompt': 'You are a helpful customer service representative. Be friendly, professional, and concise.',
+                    'system_prompt': 'You are a helpful customer service representative for A Killion Voice. Be friendly, professional, and concise.',
                     'confidence': 0.1,
                     'matched_keywords': [],
                     'voice_model': 'alloy',
                     'max_turns': 20,
-                    'sms_template': 'Thanks for calling! We discussed your inquiry and provided assistance.'
+                    'sms_template': 'Thanks for calling A Killion Voice! We discussed your inquiry and provided assistance.'
                 }
         
         # Create routing decision
@@ -143,10 +151,10 @@ class CallRouter:
             'system_prompt': agent_config.system_prompt,
             'confidence': routing_analysis['confidence'],
             'matched_keywords': routing_analysis['matched_keywords'],
-            'voice_model': agent_config.voice_model,
-            'voice_provider': agent_config.voice_provider,
-            'max_turns': agent_config.max_turns,
-            'timeout_seconds': agent_config.timeout_seconds,
+            'voice_model': getattr(agent_config, 'voice_model', 'alloy'),
+            'voice_provider': getattr(agent_config, 'voice_provider', 'openai'),
+            'max_turns': getattr(agent_config, 'max_turns', 20),
+            'timeout_seconds': getattr(agent_config, 'timeout_seconds', 30),
             'sms_template': agent_config.sms_template,
             'initial_input': user_input
         }
@@ -175,7 +183,21 @@ class CallRouter:
         Returns:
             List of agent configurations
         """
-        return [config.to_dict() for config in self.agent_configs.values()]
+        # Ensure agent configs are loaded
+        if not self.agent_configs:
+            self.load_agent_configs()
+        
+        return [
+            {
+                'agent_type': config.agent_type,
+                'name': config.name,
+                'description': config.description,
+                'keywords': config.get_keywords(),
+                'priority': config.priority,
+                'system_prompt': config.system_prompt[:100] + '...' if len(config.system_prompt) > 100 else config.system_prompt
+            }
+            for config in self.agent_configs.values()
+        ]
     
     def update_agent_config(self, agent_type: str, updates: Dict[str, Any]) -> bool:
         """
