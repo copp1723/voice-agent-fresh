@@ -171,8 +171,13 @@ def main():
     print("Deploying to akillionvoice.xyz with (978) 643-2034")
     print("=" * 50)
     
-    # Use production credentials
-    api_key = "crn_TRC_euj3pgd_qdr"
+    # Get credentials from environment or user input
+    api_key = os.getenv('RENDER_API_KEY')
+    if not api_key:
+        api_key = input("Enter your Render API key: ").strip()
+        if not api_key:
+            print("❌ Render API key is required")
+            return False
     
     # Get repository URL
     repo_url = input("Enter your GitHub repository URL (or press Enter for default): ").strip()
@@ -180,13 +185,22 @@ def main():
         repo_url = "https://github.com/copp1723/voice-agent-fresh"
         print(f"Using default repo: {repo_url}")
     
-    # Production environment variables with your credentials
+    # Get OpenRouter API key
+    openrouter_key = os.getenv('OPENROUTER_API_KEY')
+    if not openrouter_key:
+        openrouter_key = input("Enter your OpenRouter API key: ").strip()
+        if not openrouter_key:
+            print("❌ OpenRouter API key is required")
+            return False
+    
+    # Production environment variables (no hard-coded secrets)
     env_vars = {
-        "OPENROUTER_API_KEY": "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",
+        "OPENROUTER_API_KEY": openrouter_key,
         "COMPANY_NAME": "A Killion Voice",
         "DOMAIN": "akillionvoice.xyz",
         "API_BASE_URL": "https://api.akillionvoice.xyz",
-        "TWILIO_PHONE_NUMBER": "+19786432034"
+        "TWILIO_PHONE_NUMBER": "+19786432034",
+        "FLASK_ENV": "production"
     }
     
     # Optional Twilio credentials (can be added later in Render dashboard)

@@ -29,7 +29,7 @@ Deploy A Killion Voice AI agent system to production with custom domain and phon
 ### 1.4 Environment Variables
 Add these in the "Environment" tab:
 ```
-OPENROUTER_API_KEY=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
+OPENROUTER_API_KEY=[your-openrouter-api-key]
 DATABASE_URL=[paste PostgreSQL URL from step 1.2]
 COMPANY_NAME=A Killion Voice
 DOMAIN=akillionvoice.xyz
@@ -37,6 +37,7 @@ API_BASE_URL=https://api.akillionvoice.xyz
 TWILIO_PHONE_NUMBER=+19786432034
 FLASK_ENV=production
 PORT=10000
+API_KEY=[generate-secure-random-key-for-admin-api-access]
 ```
 
 ### 1.5 Deploy & Test
@@ -49,8 +50,7 @@ PORT=10000
 
 ### 2.1 Login to Namecheap
 - [ ] Go to https://www.namecheap.com/myaccount/login/
-- [ ] Username: copp1723
-- [ ] Password: ebt*znq.ket-xct2BRT
+- [ ] Use your Namecheap account credentials
 
 ### 2.2 Access Domain Management
 - [ ] Click "Domain List"

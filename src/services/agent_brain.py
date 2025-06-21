@@ -164,7 +164,84 @@ class AgentBrain:
             logger.error(f"Error generating summary: {e}")
             return "We discussed your inquiry and provided assistance."
     
-    def should_end_conversation(self, ai_response: str, conversation_history: List[str]) -> bool:
+    def generate_summary(self, conversation_history: List[str]) -> Dict[str, Any]:
+        """
+        Generate conversation summary
+        
+        Args:
+            conversation_history: List of conversation turns
+            
+        Returns:
+            Dictionary with summary and metadata
+        """
+        try:
+            if not conversation_history:
+                return {
+                    'summary': 'No conversation recorded',
+                    'key_topics': [],
+                    'sentiment': 'neutral',
+                    'resolution_status': 'incomplete'
+                }
+            
+            # Create summary prompt
+            conversation_text = '\n'.join([
+                f"{'User' if i % 2 == 0 else 'Assistant'}: {turn}"
+                for i, turn in enumerate(conversation_history)
+            ])
+            
+            summary_prompt = f"""
+            Please summarize this customer service conversation:
+            
+            {conversation_text}
+            
+            Provide a brief summary focusing on:
+            - Main issue or request
+            - Key points discussed
+            - Resolution or next steps
+            
+            Keep it concise and professional.
+            """
+            
+            if self.openai_client:
+                response = self.openai_client.chat.completions.create(
+                    model="gpt-3.5-turbo",
+                    messages=[{"role": "user", "content": summary_prompt}],
+                    max_tokens=150,
+                    temperature=0.3
+                )
+                summary = response.choices[0].message.content.strip()
+            else:
+                # Fallback summary
+                summary = f"Customer conversation with {len(conversation_history)} exchanges. Main topic: {conversation_history[0][:50]}..."
+            
+            return {
+                'summary': summary,
+                'key_topics': self._extract_topics(conversation_history),
+                'sentiment': 'positive',  # Could be enhanced with sentiment analysis
+                'resolution_status': 'completed',
+                'turn_count': len(conversation_history)
+            }
+            
+        except Exception as e:
+            logger.error(f"Error generating summary: {e}")
+            return {
+                'summary': f"Conversation completed with {len(conversation_history)} exchanges",
+                'key_topics': [],
+                'sentiment': 'neutral',
+                'resolution_status': 'completed'
+            }
+    
+    def _extract_topics(self, conversation_history: List[str]) -> List[str]:
+        """Extract key topics from conversation"""
+        topics = []
+        keywords = ['billing', 'support', 'technical', 'account', 'payment', 'service', 'help']
+        
+        conversation_text = ' '.join(conversation_history).lower()
+        for keyword in keywords:
+            if keyword in conversation_text:
+                topics.append(keyword)
+        
+        return topics[:3]  # Return top 3 topics
         """
         Determine if conversation should end based on AI response
         

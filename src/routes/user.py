@@ -1,14 +1,17 @@
 from flask import Blueprint, jsonify, request
 from src.models.user import User, db
+from src.middleware.security import require_api_key
 
 user_bp = Blueprint('user', __name__)
 
 @user_bp.route('/users', methods=['GET'])
+@require_api_key
 def get_users():
     users = User.query.all()
     return jsonify([user.to_dict() for user in users])
 
 @user_bp.route('/users', methods=['POST'])
+@require_api_key
 def create_user():
     
     data = request.json
@@ -18,11 +21,13 @@ def create_user():
     return jsonify(user.to_dict()), 201
 
 @user_bp.route('/users/<int:user_id>', methods=['GET'])
+@require_api_key
 def get_user(user_id):
     user = User.query.get_or_404(user_id)
     return jsonify(user.to_dict())
 
 @user_bp.route('/users/<int:user_id>', methods=['PUT'])
+@require_api_key
 def update_user(user_id):
     user = User.query.get_or_404(user_id)
     data = request.json
@@ -32,6 +37,7 @@ def update_user(user_id):
     return jsonify(user.to_dict())
 
 @user_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@require_api_key
 def delete_user(user_id):
     user = User.query.get_or_404(user_id)
     db.session.delete(user)

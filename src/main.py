@@ -27,10 +27,15 @@ CORS(app)
 app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(voice_bp, url_prefix='/')
 
+# Flask configuration
+app.config['SECRET_KEY'] = os.getenv('FLASK_SECRET_KEY', 'dev-key-change-in-production')
+
 # Database configuration
 database_url = os.getenv('DATABASE_URL')
 if database_url:
     # Production database (PostgreSQL on Render)
+    if database_url.startswith('postgres://'):
+        database_url = database_url.replace('postgres://', 'postgresql://', 1)
     app.config['SQLALCHEMY_DATABASE_URI'] = database_url
 else:
     # Development database (SQLite)
