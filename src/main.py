@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, send_from_directory, current_app
 from flask_cors import CORS
+from flask_migrate import Migrate # Import Migrate
 from src.models import db # Import the centralized db instance
 from src.models.call import AgentConfig # Call, Message, SMSLog are also needed if used directly here
 
@@ -46,6 +47,7 @@ def create_app(config_name=None): # config_name can be 'testing', 'development',
     # Initialize extensions
     db.init_app(app)
     CORS(app) # Enable CORS for all routes
+    migrate = Migrate(app, db) # Initialize Flask-Migrate
 
     # Import and register blueprints
     # It's common to do this inside create_app to avoid circular imports
@@ -75,9 +77,13 @@ def create_app(config_name=None): # config_name can be 'testing', 'development',
                 return "index.html not found", 404
     
     # Create database tables and default data if needed
-    with app.app_context():
-        db.create_all()
-        populate_default_agents(app) # Extracted data population to a helper
+    # This is now handled by a separate CLI command `flask init-db`
+    # to allow Alembic to correctly generate the initial migration.
+    # Also, populate_default_agents is not called here for the same reason.
+    # It will be called by the init-db command.
+    # with app.app_context():
+    #     db.create_all()
+    #     populate_default_agents(app)
 
     return app
 
@@ -144,8 +150,27 @@ def populate_default_agents(app_instance):
 # The global 'app' instance is removed. Code that needs an app instance
 # (like the if __name__ == '__main__' block) should call create_app().
 
+# It's good practice to create a single app instance for CLI commands if you have them.
+# However, Flask-Migrate's `flask db` commands work by using FLASK_APP to call create_app.
+# So, we only need to define the command if we want to run it directly.
+
+def register_cli_commands(app_instance):
+    @app_instance.cli.command("init-db")
+    def init_db_command():
+        """Clear existing data and create new tables and default agents."""
+        click.echo("Dropping existing database tables...")
+        db.drop_all()
+        click.echo("Creating new database tables...")
+        db.create_all()
+        click.echo("Populating default agent configurations...")
+        populate_default_agents(app_instance) # Pass the app instance
+        click.echo("Initialized the database.")
+
 if __name__ == '__main__':
     app = create_app() # Create app for running locally
+    import click # For CLI command echo
+    register_cli_commands(app) # Register CLI commands
+
     port = int(os.getenv('PORT', 5000))
     # FLASK_ENV is often used to control debug mode.
     # create_app can also take an env like 'development' or 'production'

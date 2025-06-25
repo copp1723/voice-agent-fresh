@@ -43,3 +43,4 @@ yarl==1.20.1
 pytest
 pytest-flask
 pytest-mock
+Flask-Migrate
