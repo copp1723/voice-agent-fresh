@@ -1,11 +1,9 @@
 """
 Optimized Call Database Models - Clean, focused schema for voice agent
 """
-from flask_sqlalchemy import SQLAlchemy
+from . import db # Use the db instance from models/__init__.py
 from datetime import datetime
 import json
-
-db = SQLAlchemy()
 
 class Call(db.Model):
     """

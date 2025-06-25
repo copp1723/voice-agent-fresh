@@ -239,6 +239,35 @@ curl https://api.akillionvoice.xyz/api/calls
 curl https://api.akillionvoice.xyz/api/agents
 ```
 
+### Running Automated Tests
+
+This project uses `pytest` for automated testing. Tests cover API endpoints, call routing logic, and SMS service functionality.
+
+**Prerequisites:**
+- Ensure you have followed the "Local Development" setup steps, including creating a virtual environment and installing dependencies from `requirements.txt`. The test dependencies (`pytest`, `pytest-flask`, `pytest-mock`) are included in this file.
+
+**Running Tests:**
+1. Activate your virtual environment:
+   ```bash
+   source venv/bin/activate  # Linux/Mac
+   # or
+   venv\Scripts\activate     # Windows
+   ```
+2. Navigate to the project root directory (if you aren't already there).
+3. Run pytest:
+   ```bash
+   pytest
+   ```
+   Or, for more verbose output:
+   ```bash
+   pytest -v
+   ```
+   Pytest will automatically discover and run tests located in the `tests/` directory. Test results will be displayed in the console.
+
+**Test Environment:**
+- Tests run against an in-memory SQLite database, separate from your development or production database, ensuring no real data is affected.
+- External services like Twilio and OpenAI are typically mocked or run in test modes to avoid actual external API calls and associated costs during testing. Refer to `tests/conftest.py` and individual test files for specific mocking strategies.
+
 ## 🔐 Security
 
 - **Environment Variables:** Sensitive data in environment

@@ -9,6 +9,7 @@ from src.middleware.security import validate_twilio_request, require_api_key
 from src.services.call_session import session_manager
 from src.services.sms_service import sms_service
 from src.models.call import Call, Message, db
+from src.services.call_router import call_router # Import call_router
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
