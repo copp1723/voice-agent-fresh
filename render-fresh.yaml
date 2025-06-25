@@ -1,0 +1,81 @@
+# Fresh Voice Agent Deployment Configuration for Render
+# This creates completely new databases and web services
+
+services:
+  # PostgreSQL Database - Fresh Instance
+  - type: pserv
+    name: voice-agent-db-fresh
+    plan: starter
+    env: postgresql
+    databaseName: voice_agent_fresh
+    databaseUser: voice_agent_user
+    region: oregon
+    
+  # Web Service - Fresh Voice Agent
+  - type: web
+    name: voice-agent-fresh
+    plan: starter
+    env: python
+    region: oregon
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: python src/main.py
+    healthCheckPath: /health
+    
+    # Environment Variables
+    envVars:
+      # Flask Configuration
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: PORT
+        value: "10000"
+        
+      # Database Connection (auto-linked to PostgreSQL service)
+      - key: DATABASE_URL
+        fromDatabase:
+          name: voice-agent-db-fresh
+          property: connectionString
+          
+      # API Keys (to be set manually)
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+        
+      # Voice Agent Configuration
+      - key: VOICE_PROVIDER
+        value: openai
+      - key: DEFAULT_VOICE
+        value: alloy
+      - key: COMPANY_NAME
+        value: "Voice Agent Fresh"
+      - key: MAX_CONVERSATION_TURNS
+        value: "20"
+      - key: RESPONSE_TIMEOUT
+        value: "30"
+        
+      # Mailgun Configuration (optional)
+      - key: MAILGUN_API_KEY
+        sync: false
+      - key: MAILGUN_DOMAIN
+        sync: false
+      - key: MAILGUN_WEBHOOK_SIGNING_KEY
+        sync: false
+        
+    # Auto-deploy settings
+    autoDeploy: true
+    branch: main
+    
+    # Resource limits
+    disk:
+      name: voice-agent-storage
+      sizeGB: 1
+      mountPath: /opt/render/project/storage
+
