@@ -1,6 +1,4 @@
-from flask_sqlalchemy import SQLAlchemy
-
-db = SQLAlchemy()
+from . import db # Use the db instance from models/__init__.py
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
