@@ -1,0 +1,42 @@
+# Python 3.13 Compatible Dockerfile
+FROM python:3.13-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements first for better caching
+COPY ../requirements-py313.txt .
+COPY ../requirements.txt .
+
+# Install Python dependencies - use Python 3.13 compatible requirements
+RUN pip install --no-cache-dir -r requirements-py313.txt
+
+# Copy application code
+COPY ../src/ ./src/
+COPY ../scripts/create_admin_user.py .
+
+# Create necessary directories
+RUN mkdir -p src/database
+
+# Set environment variables
+ENV FLASK_APP=src.main:create_app
+ENV PYTHONPATH=/app
+ENV PYTHON_VERSION=3.13
+
+# Expose port
+EXPOSE 5000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5000/health || exit 1
+
+# Run the application with gunicorn using gevent workers (Python 3.13 compatible)
+CMD ["gunicorn", "--worker-class", "gevent", "-w", "1", "--bind", "0.0.0.0:5000", "--timeout", "120", "src.main:create_app()"]

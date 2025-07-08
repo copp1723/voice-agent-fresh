@@ -9,6 +9,9 @@ from src.middleware.security import validate_twilio_request, require_api_key
 from src.services.call_session import session_manager
 from src.services.sms_service import sms_service
 from src.models.call import Call, Message, db
+from src.models.customer import Customer
+from src.services.call_router import call_router # Import call_router
+from src.services import websocket_events
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -33,6 +36,14 @@ def handle_inbound_call():
         
         # Create isolated call session
         session = session_manager.create_session(call_sid, from_number)
+        
+        # Emit WebSocket event for new call
+        websocket_events.emit_call_started({
+            'callSid': call_sid,
+            'from': from_number,
+            'to': to_number,
+            'startTime': datetime.utcnow().isoformat()
+        })
         
         # Create TwiML response
         response = VoiceResponse()
@@ -93,9 +104,28 @@ def process_voice_input(call_sid):
         if session.turn_count == 0:
             session.route_call(transcription)
             logger.info(f"Routed call {call_sid} to {session.agent_type} agent")
+            # Emit agent assignment event
+            websocket_events.emit_call_updated(call_sid, {
+                'agentType': session.agent_type,
+                'status': 'routed'
+            })
+        
+        # Emit transcription update
+        websocket_events.emit_transcription_update(call_sid, {
+            'speaker': 'customer',
+            'text': transcription,
+            'timestamp': datetime.utcnow().isoformat()
+        })
         
         # Process conversation turn with isolated state
         ai_response = session.process_conversation_turn(transcription)
+        
+        # Emit AI response transcription
+        websocket_events.emit_transcription_update(call_sid, {
+            'speaker': 'agent',
+            'text': ai_response,
+            'timestamp': datetime.utcnow().isoformat()
+        })
         
         # Create TwiML response
         response = VoiceResponse()
@@ -144,6 +174,13 @@ def call_status_callback():
         if call_status in ['completed', 'busy', 'failed', 'no-answer']:
             # End the call session and trigger SMS follow-up
             session_result = session_manager.end_session(call_sid, call_status)
+            
+            # Emit call ended event
+            websocket_events.emit_call_ended(call_sid, {
+                'status': call_status,
+                'endTime': datetime.utcnow().isoformat(),
+                'duration': session_result.get('duration') if session_result else None
+            })
             
             if session_result and call_status == 'completed':
                 # Send SMS follow-up

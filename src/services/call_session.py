@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Any
 from src.services.agent_brain import AgentBrain
 from src.services.call_router import call_router
 from src.models.call import Call, Message, db
+from src.models.customer import Customer
 
 logger = logging.getLogger(__name__)
 
@@ -61,6 +62,13 @@ class CallSession:
             # Configure the agent brain for this specific call
             self.agent_brain.set_agent_instructions(routing_decision['system_prompt'])
             
+            # Find or create customer
+            customer = Customer.query.filter_by(phone_number=self.phone_number).first()
+            if not customer:
+                customer = Customer(phone_number=self.phone_number)
+                db.session.add(customer)
+                db.session.commit()
+            
             # Create call record in database
             self.call_record = Call(
                 call_sid=self.call_sid,
@@ -69,9 +77,14 @@ class CallSession:
                 agent_type=self.agent_type,
                 routing_confidence=self.routing_confidence,
                 routing_keywords=','.join(self.matched_keywords),
-                status='active'
+                status='active',
+                customer_id=customer.id
             )
             db.session.add(self.call_record)
+            db.session.commit()
+            
+            # Update customer stats
+            customer.update_stats()
             db.session.commit()
             
             logger.info(f"Call {self.call_sid} routed to {self.agent_type} agent (confidence: {self.routing_confidence:.2f})")

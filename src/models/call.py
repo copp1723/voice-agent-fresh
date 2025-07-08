@@ -1,11 +1,9 @@
 """
 Optimized Call Database Models - Clean, focused schema for voice agent
 """
-from flask_sqlalchemy import SQLAlchemy
+from . import db # Use the db instance from models/__init__.py
 from datetime import datetime
 import json
-
-db = SQLAlchemy()
 
 class Call(db.Model):
     """
@@ -39,6 +37,9 @@ class Call(db.Model):
     # SMS follow-up
     sms_sent = db.Column(db.Boolean, default=False)
     sms_sid = db.Column(db.String(100))
+    
+    # Customer relationship
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     
     # Relationships
     messages = db.relationship('Message', backref='call', lazy=True, cascade='all, delete-orphan')
@@ -191,6 +192,9 @@ class SMSLog(db.Model):
     # Template info
     template_type = db.Column(db.String(50))
     agent_type = db.Column(db.String(50))
+    
+    # Customer relationship
+    customer_id = db.Column(db.Integer, db.ForeignKey('customer.id'))
     
     def to_dict(self):
         return {

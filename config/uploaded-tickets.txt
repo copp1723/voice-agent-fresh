@@ -1,0 +1,23 @@
+TICKET-001: Complete AgentBrain Test Coverage
+- Add tests for should_end_conversation method with end phrases and max turns
+- Add tests for _get_default_prompt method with/without environment variables
+- Add edge cases for error handling in all methods
+- Run coverage report and fill gaps to reach 90%+ coverage
+- Files: tests/test_agent_brain.py, src/services/agent_brain.py
+- Dependencies: None
+
+TICKET-002: Setup CI/CD Pipeline with GitHub Actions
+- Create .github/workflows/ci.yml with automated testing
+- Add PR validation with pytest and coverage checks
+- Implement staging deployment workflow
+- Add production deployment gates with manual approval
+- Include OWASP dependency scanning
+- Dependencies: TICKET-001
+
+TICKET-003: Implement JWT Authentication System
+- Create JWT token generation and validation service
+- Build login/logout API endpoints with refresh token mechanism
+- Add auth decorators for API route protection
+- Create src/auth/ module with token management
+- Update existing API endpoints to use JWT auth
+- Dependencies: None

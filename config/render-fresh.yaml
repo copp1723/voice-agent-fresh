@@ -1,0 +1,84 @@
+# Voice Agent Deployment Configuration for Render
+# This creates all necessary services for the voice agent system
+
+services:
+  # Backend API Service
+  - type: web
+    name: voice-agent-backend
+    plan: starter
+    env: python
+    region: oregon
+    buildCommand: |
+      pip install --upgrade pip
+      pip install -r requirements.txt
+    startCommand: gunicorn --worker-class eventlet -w 1 --bind 0.0.0.0:$PORT --timeout 120 src.main:create_app()
+    healthCheckPath: /api/health
+    
+    # Environment Variables
+    envVars:
+      # Flask Configuration
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: API_KEY
+        generateValue: true
+        
+      # Database Connection
+      - key: DATABASE_URL
+        fromDatabase:
+          name: voice-agent-db
+          property: connectionString
+          
+      # Redis Connection
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: voice-agent-redis
+          property: connectionString
+          
+      # API Keys (to be set manually)
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+        
+    # Auto-deploy settings
+    autoDeploy: true
+    branch: main
+
+  # Frontend Static Site
+  - type: static
+    name: voice-agent-frontend
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: ./frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://voice-agent-backend.onrender.com/api
+      - key: VITE_WS_URL
+        value: wss://voice-agent-backend.onrender.com
+
+# Databases
+databases:
+  - name: voice-agent-db
+    plan: starter
+    databaseName: voice_agent
+    user: voice_agent_user
+    postgresMajorVersion: 15
+
+  # Redis for caching and sessions
+  - name: voice-agent-redis
+    type: redis
+    plan: starter
+    ipAllowList: []
+

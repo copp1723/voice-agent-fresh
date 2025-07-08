@@ -6,6 +6,7 @@ import logging
 from typing import Dict, Any, Optional
 from twilio.rest import Client
 from src.models.call import SMSLog, AgentConfig, db
+from src.models.customer import Customer
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,9 @@ class SMSService:
             
             # Log SMS in database
             if result['success']:
+                # Find customer
+                customer = Customer.query.filter_by(phone_number=to_number).first()
+                
                 sms_log = SMSLog(
                     call_id=call_id,
                     sms_sid=result.get('sms_sid'),
@@ -81,10 +85,16 @@ class SMSService:
                     message_body=message_body,
                     status='sent',
                     template_type=agent_type,
-                    agent_type=agent_type
+                    agent_type=agent_type,
+                    customer_id=customer.id if customer else None
                 )
                 db.session.add(sms_log)
                 db.session.commit()
+                
+                # Update customer stats if found
+                if customer:
+                    customer.update_stats()
+                    db.session.commit()
                 
                 logger.info(f"SMS follow-up sent to {to_number} for call {call_id}")
             

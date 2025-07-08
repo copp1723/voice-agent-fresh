@@ -1,0 +1,124 @@
+version: '3.8'
+
+services:
+  backend:
+    image: voice-agent-backend:latest
+    container_name: voice-agent-backend
+    restart: unless-stopped
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=${DATABASE_URL}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - TWILIO_PHONE_NUMBER=${TWILIO_PHONE_NUMBER}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - API_KEY=${API_KEY}
+    depends_on:
+      - db
+      - redis
+    networks:
+      - voice-agent-network
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '1'
+          memory: 1G
+
+  frontend:
+    image: voice-agent-frontend:latest
+    container_name: voice-agent-frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - voice-agent-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  nginx:
+    image: nginx:alpine
+    container_name: voice-agent-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-prod.conf:/etc/nginx/conf.d/default.conf
+      - ../ssl:/etc/nginx/ssl
+      - nginx-cache:/var/cache/nginx
+    depends_on:
+      - backend
+      - frontend
+    networks:
+      - voice-agent-network
+
+  db:
+    image: postgres:15
+    container_name: voice-agent-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER:-postgres}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=${DB_NAME:-voice_agent}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../backup:/backup
+    networks:
+      - voice-agent-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+
+  redis:
+    image: redis:7-alpine
+    container_name: voice-agent-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - voice-agent-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+
+  backup:
+    image: postgres:15
+    container_name: voice-agent-backup
+    restart: unless-stopped
+    environment:
+      - PGUSER=${DB_USER:-postgres}
+      - PGPASSWORD=${DB_PASSWORD}
+      - PGHOST=db
+      - PGDATABASE=${DB_NAME:-voice_agent}
+    volumes:
+      - ../backup:/backup
+      - ../scripts/backup.sh:/backup.sh
+    command: /bin/sh -c "chmod +x /backup.sh && crond -f"
+    networks:
+      - voice-agent-network
+
+networks:
+  voice-agent-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  nginx-cache:

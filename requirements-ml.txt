@@ -1,0 +1,26 @@
+# ML Requirements - Optional Chatterbox TTS dependencies
+# Install these only if you want to use Chatterbox TTS
+
+# Core ML dependencies
+torch>=2.0.0
+torchaudio>=2.0.0
+numpy>=1.24.0
+scipy>=1.10.0
+librosa>=0.10.0
+
+# Audio processing
+soundfile>=0.12.0
+resampy>=0.4.0
+
+# Coqui TTS - High quality voice synthesis with cloning
+TTS>=0.22.0
+
+# Chatterbox TTS (deprecated - replaced by Coqui)
+# chatterbox-tts
+
+# Embeddings for semantic search
+sentence-transformers>=2.2.0
+
+# Note: Install with conda for better compatibility:
+# conda install pytorch torchaudio -c pytorch
+# pip install chatterbox-tts

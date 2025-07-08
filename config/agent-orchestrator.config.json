@@ -1,0 +1,51 @@
+{
+  "project": {
+    "name": "voice-agent-fresh-main",
+    "remote": "https://github.com/yourusername/voice-agent-fresh-main.git",
+    "baseBranch": "main",
+    "localPath": "/Users/copp1723/Desktop/voice-agent-fresh-main"
+  },
+  "agents": {
+    "frontend": {
+      "name": "Frontend Agent",
+      "branchPrefix": "feature/frontend",
+      "workingPaths": ["static", "templates", "src/ui"],
+      "excludePaths": ["src/services", "src/auth", "tests"]
+    },
+    "backend": {
+      "name": "Backend Agent", 
+      "branchPrefix": "feature/backend",
+      "workingPaths": ["src/services", "src/api", "src/auth"],
+      "excludePaths": ["static", "templates", "tests"]
+    },
+    "database": {
+      "name": "Database Agent",
+      "branchPrefix": "feature/database",
+      "workingPaths": ["src/models", "migrations", "src/db"],
+      "excludePaths": ["static", "src/api", "tests"]
+    },
+    "integration": {
+      "name": "Integration Agent",
+      "branchPrefix": "feature/integration",
+      "workingPaths": [".github/workflows", "scripts", "deploy"],
+      "excludePaths": ["src", "tests"]
+    },
+    "testing": {
+      "name": "Testing Agent",
+      "branchPrefix": "test",
+      "workingPaths": ["tests", "src/**/*.test.py"],
+      "excludePaths": []
+    }
+  },
+  "conflictResolution": {
+    "autoMergeStrategy": "rebase",
+    "conflictHandling": "manual",
+    "updateFrequency": "30m",
+    "priorityOrder": ["database", "backend", "integration", "frontend", "testing"]
+  },
+  "communication": {
+    "updateChannel": "filesystem",
+    "statusFile": ".agent-status.json",
+    "lockFile": ".agent-locks.json"
+  }
+}

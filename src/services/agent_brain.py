@@ -5,6 +5,15 @@ import os
 import logging
 from typing import Dict, Any, List, Optional
 import openai
+from sqlalchemy.orm import Session
+
+# Try to import knowledge base if available
+try:
+    from server.services.knowledge_base import KnowledgeBase
+    KNOWLEDGE_BASE_AVAILABLE = True
+except ImportError:
+    logger.warning("Knowledge base service not available - running without knowledge integration")
+    KNOWLEDGE_BASE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +49,8 @@ class AgentBrain:
         self.current_system_prompt = system_prompt
         logger.info("Updated agent instructions for specialized behavior")
     
-    def process_conversation(self, user_input: str, conversation_history: List[str]) -> str:
+    def process_conversation(self, user_input: str, conversation_history: List[str], 
+                           agent_id: Optional[int] = None, db_session: Optional[Session] = None) -> str:
         """
         Process user input and generate AI response optimized for voice
         
@@ -64,6 +74,24 @@ class AgentBrain:
                 "role": "system",
                 "content": f"{system_prompt}\n\nImportant: Keep responses concise and conversational since this is a voice conversation. Use simple language, avoid technical jargon, and speak naturally as if talking to someone on the phone. Responses should be 1-2 sentences maximum unless specifically asked for details."
             })
+            
+            # Get knowledge context if available
+            if KNOWLEDGE_BASE_AVAILABLE and db_session and agent_id:
+                try:
+                    kb = KnowledgeBase(db_session)
+                    knowledge_context = kb.get_context_for_conversation(
+                        agent_id=agent_id,
+                        conversation_text=user_input,
+                        max_tokens=300
+                    )
+                    if knowledge_context:
+                        messages.append({
+                            "role": "system",
+                            "content": f"Relevant Information:\n{knowledge_context}"
+                        })
+                        logger.info(f"Injected knowledge context for agent {agent_id}")
+                except Exception as e:
+                    logger.error(f"Failed to get knowledge context: {e}")
             
             # Add conversation history (alternating user/assistant)
             for i, msg in enumerate(conversation_history[-20:]):  # Last 20 messages
