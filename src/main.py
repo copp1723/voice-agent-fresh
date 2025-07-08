@@ -1,3 +1,6 @@
+"""
+TODO: All voice processing is unified to EnhancedVoiceProcessor. If you need fallback/simple behavior, implement as a plugin or provider.
+"""
 import os
 import sys
 from dotenv import load_dotenv
@@ -66,6 +69,7 @@ def create_app(config_name=None): # config_name can be 'testing', 'development',
     from src.routes.dashboard import dashboard_bp
     from src.routes.customer import customer_bp
     from src.routes.reports import reports_bp
+    # All voice processing is unified to EnhancedVoiceProcessor; ensure routes use that.
     app.register_blueprint(user_bp, url_prefix='/api')
     app.register_blueprint(voice_bp, url_prefix='/')
     app.register_blueprint(auth_bp, url_prefix='/api')
